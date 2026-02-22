@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Users — VoltEdge</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#0a235a;--blue-mid:#1a3a7a;--blue-light:#eef2ff;--gl:#f5f7fa;--gm:#eaeef2;--border:#dde2ea;--muted:#6b7280;--dark:#1a1f2e;--danger:#dc2626;--success:#16a34a;--warn:#d97706;--radius:12px;--radius-sm:8px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--gl);color:var(--dark);min-height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{background:#fff;border-bottom:1px solid var(--gm);padding:.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:.6rem;}
+.topbar-logo{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--blue);white-space:nowrap;flex-shrink:0;}
+.topbar-logo span{color:#000;}
+.topbar-logo .admin-badge{font-size:.65rem;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;margin-left:.3rem;}
+
+/* Hamburger */
+.hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;cursor:pointer;padding:.3rem;flex-shrink:0;}
+.hamburger span{display:block;width:22px;height:2px;background:var(--dark);border-radius:2px;transition:all .25s;}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.hamburger.open span:nth-child(2){opacity:0;}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+/* Desktop nav */
+.topbar-nav{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;}
+.nav-link{padding:.4rem .85rem;border-radius:var(--radius-sm);font-size:.82rem;font-weight:500;color:var(--muted);text-decoration:none;transition:all .15s;white-space:nowrap;}
+.nav-link:hover{background:var(--gl);color:var(--blue);}
+.nav-link.active{background:var(--blue-light);color:var(--blue);font-weight:600;}
+.logout-btn{margin-left:.3rem;background:none;border:1.5px solid var(--gm);padding:.38rem .9rem;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;color:var(--danger);transition:all .2s;white-space:nowrap;}
+.logout-btn:hover{background:var(--danger);color:#fff;border-color:var(--danger);}
+
+/* Mobile nav drawer */
+.mobile-nav{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:190;opacity:0;pointer-events:none;transition:opacity .25s;}
+.mobile-nav.open{opacity:1;pointer-events:all;}
+.mobile-nav-drawer{position:absolute;top:0;right:0;width:min(280px,85vw);height:100%;background:#fff;padding:5rem 1.5rem 2rem;display:flex;flex-direction:column;gap:.4rem;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:-6px 0 30px rgba(0,0,0,.12);}
+.mobile-nav.open .mobile-nav-drawer{transform:translateX(0);}
+.mobile-nav .nav-link{display:block;padding:.65rem .85rem;font-size:.92rem;}
+.mobile-nav .logout-btn{margin:1rem 0 0;display:block;text-align:center;width:100%;padding:.6rem;}
+
+/* ── PAGE ── */
+.page{max-width:1300px;margin:0 auto;padding:1.8rem 1.25rem;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.8rem;}
+.page-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--dark);}
+.page-subtitle{font-size:.82rem;color:var(--muted);margin-top:.2rem;}
+.stat-pill{background:var(--blue-light);color:var(--blue);font-size:.8rem;font-weight:700;padding:.4rem 1rem;border-radius:20px;white-space:nowrap;}
+
+/* ── CARD ── */
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.05);border:1px solid var(--gm);margin-bottom:1.2rem;overflow:hidden;}
+.card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--gm);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;}
+.card-title{font-size:.95rem;font-weight:600;}
+.card-body{padding:1.25rem;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;border:none;white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:var(--blue-mid);}
+.btn-ghost{background:#fff;color:var(--blue);border:1.5px solid var(--blue);}
+.btn-ghost:hover{background:var(--blue-light);}
+.btn-danger{background:#fef2f2;color:var(--danger);border:1px solid #fecaca;}
+.btn-danger:hover{background:var(--danger);color:#fff;}
+.btn-sm{padding:.28rem .65rem;font-size:.75rem;}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;padding:.85rem 1.25rem;border-bottom:1px solid var(--gm);}
+.form-control{padding:.52rem .85rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:.83rem;outline:none;transition:border-color .2s;background:#fff;width:100%;}
+.form-control:focus{border-color:var(--blue);}
+.filter-bar .search-input{flex:1 1 180px;min-width:140px;}
+.filter-bar .search-type{flex:0 1 130px;min-width:110px;}
+.filter-bar .filter-btns{display:flex;gap:.4rem;flex-shrink:0;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:.83rem;}
+th{text-align:left;padding:.6rem .9rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:2px solid var(--gm);font-weight:700;white-space:nowrap;}
+td{padding:.65rem .9rem;border-bottom:1px solid var(--gl);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafbfc;}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;flex-shrink:0;}
+.role-badge{display:inline-block;background:var(--blue-light);color:var(--blue);font-size:.68rem;font-weight:600;padding:.2rem .55rem;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;}
+.empty-row td{text-align:center;color:var(--muted);padding:3rem 1rem;}
+
+/* ── MOBILE CARD LIST (replaces table on small screens) ── */
+.user-card-list{display:none;flex-direction:column;}
+.user-card-item{display:flex;align-items:center;gap:.85rem;padding:.9rem 1.25rem;border-bottom:1px solid var(--gl);cursor:pointer;transition:background .15s;}
+.user-card-item:last-child{border-bottom:none;}
+.user-card-item:hover{background:#fafbfc;}
+.user-card-info{flex:1;min-width:0;}
+.user-card-name{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-card-email{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-card-arrow{color:var(--muted);font-size:1.1rem;flex-shrink:0;}
+
+/* ── DETAIL CARD ── */
+.detail-card{display:none;}
+.detail-card.show{display:block;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem;}
+.detail-field label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:.2rem;}
+.detail-field span{font-size:.9rem;font-weight:500;word-break:break-all;}
+.detail-actions{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gm);}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:1.25rem;right:1.25rem;left:auto;background:#fff;border:1px solid var(--gm);border-radius:12px;padding:.75rem 1.3rem;font-size:.83rem;box-shadow:0 8px 25px rgba(0,0,0,.12);z-index:9999;opacity:0;transform:translateY(12px);transition:all .3s;pointer-events:none;max-width:300px;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.success{border-left:3px solid var(--success);color:var(--success);}
+.toast.error{border-left:3px solid var(--danger);color:var(--danger);}
+
+/* ── RESPONSIVE BREAKPOINTS ── */
+
+/* Tablet: ≤ 900px */
+@media(max-width:900px){
+  .topbar-nav{display:none;}
+  .hamburger{display:flex;}
+  .mobile-nav{display:block;}
+  .page{padding:1.4rem 1rem;}
+}
+
+/* Small tablet / large mobile: ≤ 680px */
+@media(max-width:680px){
+  /* Switch from table to card list */
+  .tbl-wrap{display:none;}
+  .user-card-list{display:flex;}
+  .card-body{padding:0;}
+  .detail-grid{grid-template-columns:1fr;}
+  .detail-actions{flex-direction:column;}
+  .detail-actions .btn{width:100%;justify-content:center;}
+}
+
+/* Mobile: ≤ 480px */
+@media(max-width:480px){
+  .page-title{font-size:1.25rem;}
+  .filter-bar{gap:.4rem;}
+  .filter-bar .search-type{flex:1 1 100%;}
+  .filter-bar .search-input{flex:1 1 100%;}
+  .filter-bar .filter-btns{width:100%;justify-content:flex-end;}
+  .toast{left:1rem;right:1rem;max-width:none;}
+  .card-header{flex-direction:column;align-items:flex-start;}
+  .card-header .btn-ghost{align-self:flex-start;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    Volt<span>Edge</span>
+    <span class="admin-badge">Admin</span>
+  </div>
+
+  <!-- Desktop nav -->
+  <div class="topbar-nav">
+    <a class="nav-link" href="admin.html">Dashboard</a>
+    <a class="nav-link" href="admin-products.html">Products</a>
+    <a class="nav-link" href="admin-orders.html">Orders</a>
+    <a class="nav-link active" href="admin-users.html">Users</a>
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- Hamburger (mobile) -->
+  <button class="hamburger" id="hamburger" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<!-- Mobile nav overlay -->
+<div class="mobile-nav" id="mobileNav" onclick="closeMobileNav(event)">
+  <div class="mobile-nav-drawer">
+    <a class="nav-link" href="admin.html">Dashboard</a>
+    <a class="nav-link" href="admin-products.html">Products</a>
+    <a class="nav-link" href="admin-orders.html">Orders</a>
+    <a class="nav-link active" href="admin-users.html">Users</a>
+    <button class="logout-btn" id="logoutBtnMobile">Logout</button>
+  </div>
+</div>
+
+<!-- PAGE CONTENT -->
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Users</div>
+      <div class="page-subtitle">Manage registered customers</div>
+    </div>
+    <span class="stat-pill" id="totalPill">Loading…</span>
+  </div>
+
+  <!-- Users list card -->
+  <div class="card" id="usersCard">
+
+    <div class="filter-bar">
+      <input class="form-control search-input" type="text" id="searchInput" placeholder="Search users…"
+        onkeydown="if(event.key==='Enter')searchUsers()">
+      <select class="form-control search-type" id="searchType">
+        <option value="name">By Name</option>
+        <option value="email">By Email</option>
+      </select>
+      <div class="filter-btns">
+        <button class="btn btn-ghost btn-sm" onclick="searchUsers()">Search</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadAllUsers()">Reset</button>
+      </div>
+    </div>
+
+    <div class="card-header">
+      <span class="card-title" id="usersHeading">All Users</span>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="card-body" style="padding:0;">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:48px;"></th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="usersBody">
+            <tr class="empty-row"><td colspan="6">Loading users…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile card list -->
+      <div class="user-card-list" id="userCardList">
+        <div style="text-align:center;color:var(--muted);padding:2.5rem 1rem;">Loading users…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- User detail card -->
+  <div class="card detail-card" id="detailCard">
+    <div class="card-header">
+      <span class="card-title">User Details</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeDetail()">← Back to Users</button>
+    </div>
+    <div class="card-body">
+      <div class="detail-grid">
+        <div class="detail-field"><label>Full Name</label><span id="detailName"></span></div>
+        <div class="detail-field"><label>User ID</label><span id="detailId"></span></div>
+        <div class="detail-field"><label>Email</label><span id="detailEmail"></span></div>
+        <div class="detail-field"><label>Phone</label><span id="detailPhone"></span></div>
+        <div class="detail-field"><label>Role</label><span id="detailRole"></span></div>
+      </div>
+      <div class="detail-actions">
+        <a class="btn btn-ghost btn-sm" id="viewOrdersBtn" href="#">View Their Orders</a>
+        <button class="btn btn-danger btn-sm" id="deleteUserBtn">Delete User</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = 'http://localhost:8080/api/v1';
+
+const Auth = {
+  isAdmin: () => !!localStorage.getItem('adminToken'),
+  headers: () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+  }),
+  logout: () => {
+    ['adminToken','adminName'].forEach(k => localStorage.removeItem(k));
+    window.location.href = 'admin.html';
+  }
+};
+
+if (!Auth.isAdmin()) window.location.href = 'admin.html';
+
+document.getElementById('logoutBtn').addEventListener('click', Auth.logout);
+document.getElementById('logoutBtnMobile').addEventListener('click', Auth.logout);
+
+/* ── Mobile nav ── */
+const hamburger = document.getElementById('hamburger');
+const mobileNav = document.getElementById('mobileNav');
+
+hamburger.addEventListener('click', () => {
+  const open = mobileNav.classList.toggle('open');
+  hamburger.classList.toggle('open', open);
+});
+
+function closeMobileNav(e) {
+  if (e.target === mobileNav) {
+    mobileNav.classList.remove('open');
+    hamburger.classList.remove('open');
+  }
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3400);
+}
+
+function initials(u) {
+  const f = (u.firstName || '').charAt(0).toUpperCase();
+  const l = (u.lastName  || '').charAt(0).toUpperCase();
+  return f + l || '?';
+}
+
+/* ── Load all users ── */
+async function loadAllUsers() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('usersBody').innerHTML =
+    '<tr class="empty-row"><td colspan="6">Loading…</td></tr>';
+  document.getElementById('userCardList').innerHTML =
+    '<div style="text-align:center;color:var(--muted);padding:2.5rem 1rem;">Loading users…</div>';
+  try {
+    const res = await fetch(`${API_BASE}/admin/users`, { headers: Auth.headers() });
+    if (!res.ok) throw new Error('Failed to load users');
+    const data = await res.json();
+    const list = data.users || (Array.isArray(data) ? data : []);
+    const total = data.totalUsers || list.length;
+    document.getElementById('totalPill').textContent = `${total} Users`;
+    renderUsers(list, `All Users (${total})`);
+  } catch (e) {
+    const msg = `<tr class="empty-row"><td colspan="6" style="color:var(--danger)">${e.message}</td></tr>`;
+    document.getElementById('usersBody').innerHTML = msg;
+    document.getElementById('userCardList').innerHTML =
+      `<div style="text-align:center;color:var(--danger);padding:2.5rem 1rem;">${e.message}</div>`;
+  }
+}
+
+/* ── Search ── */
+async function searchUsers() {
+  const q    = document.getElementById('searchInput').value.trim();
+  const type = document.getElementById('searchType').value;
+  if (!q) { loadAllUsers(); return; }
+  document.getElementById('usersBody').innerHTML =
+    '<tr class="empty-row"><td colspan="6">Searching…</td></tr>';
+  document.getElementById('userCardList').innerHTML =
+    '<div style="text-align:center;color:var(--muted);padding:2.5rem 1rem;">Searching…</div>';
+  try {
+    const endpoint = type === 'email'
+      ? `/admin/users/search/email?q=${encodeURIComponent(q)}`
+      : `/admin/users/search/name?q=${encodeURIComponent(q)}`;
+    const res = await fetch(`${API_BASE}${endpoint}`, { headers: Auth.headers() });
+    if (!res.ok) throw new Error('Search failed');
+    const users = await res.json();
+    renderUsers(users, `Results for "${q}" (${users.length})`);
+  } catch (e) {
+    document.getElementById('usersBody').innerHTML =
+      `<tr class="empty-row"><td colspan="6" style="color:var(--danger)">${e.message}</td></tr>`;
+    document.getElementById('userCardList').innerHTML =
+      `<div style="text-align:center;color:var(--danger);padding:2.5rem 1rem;">${e.message}</div>`;
+  }
+}
+
+/* ── Render (table + mobile cards) ── */
+function renderUsers(users, heading) {
+  document.getElementById('usersHeading').textContent = heading;
+
+  // Desktop table
+  const tbody = document.getElementById('usersBody');
+  // Mobile list
+  const cardList = document.getElementById('userCardList');
+
+  if (!users.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No users found.</td></tr>';
+    cardList.innerHTML =
+      '<div style="text-align:center;color:var(--muted);padding:2.5rem 1rem;">No users found.</div>';
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td><div class="user-avatar">${initials(u)}</div></td>
+      <td style="font-weight:600">${u.firstName || ''} ${u.lastName || ''}</td>
+      <td>${u.email || '—'}</td>
+      <td style="color:var(--muted)">${u.phone || '—'}</td>
+      <td><span class="role-badge">${u.role || 'USER'}</span></td>
+      <td><button class="btn btn-sm btn-primary" onclick="viewUser('${u.id}')">View</button></td>
+    </tr>`).join('');
+
+  cardList.innerHTML = users.map(u => `
+    <div class="user-card-item" onclick="viewUser('${u.id}')">
+      <div class="user-avatar">${initials(u)}</div>
+      <div class="user-card-info">
+        <div class="user-card-name">${u.firstName || ''} ${u.lastName || ''} <span class="role-badge" style="margin-left:.3rem;">${u.role || 'USER'}</span></div>
+        <div class="user-card-email">${u.email || '—'} · ${u.phone || '—'}</div>
+      </div>
+      <div class="user-card-arrow">›</div>
+    </div>`).join('');
+}
+
+/* ── View user detail ── */
+async function viewUser(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: Auth.headers() });
+    if (!res.ok) throw new Error('Could not load user');
+    const u = await res.json();
+
+    document.getElementById('usersCard').style.display   = 'none';
+    document.getElementById('detailCard').classList.add('show');
+
+    document.getElementById('detailName').textContent  = `${u.firstName || ''} ${u.lastName || ''}`;
+    document.getElementById('detailId').textContent    = u.id;
+    document.getElementById('detailEmail').textContent = u.email || '—';
+    document.getElementById('detailPhone').textContent = u.phone || '—';
+    document.getElementById('detailRole').innerHTML    =
+      `<span class="role-badge">${u.role || 'USER'}</span>`;
+
+    document.getElementById('viewOrdersBtn').href = `admin-orders.html?userId=${u.id}`;
+    document.getElementById('deleteUserBtn').onclick = () =>
+      deleteUser(u.id, `${u.firstName} ${u.lastName}`);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailCard').classList.remove('show');
+  document.getElementById('usersCard').style.display = 'block';
+}
+
+/* ── Delete user ── */
+async function deleteUser(userId, name) {
+  if (!confirm(`Permanently delete "${name}"? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: 'DELETE', headers: Auth.headers()
+    });
+    if (!res.ok) throw new Error('Delete failed');
+    showToast('User deleted.', 'success');
+    closeDetail();
+    loadAllUsers();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+loadAllUsers();
+</script>
+</body>
+</html>

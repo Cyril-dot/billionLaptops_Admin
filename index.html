@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+  <title>VoltEdge · Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --blue:#0a235a; --blue-mid:#1a3a7a; --blue-light:#eef2ff; --gl:#f5f7fa; --gm:#eaeef2; --muted:#6b7280; --danger:#dc2626; --success:#16a34a; --warn:#d97706; --radius:12px; }
+    body { font-family:'DM Sans',sans-serif; background:var(--gl); }
+
+    /* ── AUTH ── */
+    #authScreen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--blue); padding:1rem; }
+    .auth-card { background:#fff; border-radius:24px; padding:2rem 1.5rem; width:100%; max-width:460px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .logo { font-family:'Playfair Display',serif; font-size:1.8rem; color:var(--blue); text-align:center; margin-bottom:.2rem; }
+    .logo span { color:#000; }
+    .logo-sub { text-align:center; font-size:.78rem; color:var(--muted); margin-bottom:1.5rem; }
+    .tabs { display:flex; border-bottom:2px solid var(--gm); margin-bottom:1.5rem; }
+    .tab { flex:1; padding:.7rem; text-align:center; font-size:.85rem; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+    .tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+    .form-group { margin-bottom:.9rem; }
+    label { display:block; font-size:.78rem; font-weight:600; margin-bottom:.3rem; color:#333; }
+    .lbl-hint { font-weight:300; color:var(--muted); font-size:.72rem; }
+    .req { color:var(--danger); margin-left:1px; }
+    input, select, textarea { width:100%; padding:.7rem 1rem; border:1.5px solid var(--gm); border-radius:14px; font-family:'DM Sans',sans-serif; font-size:.9rem; outline:none; transition:border-color .2s; background:#fff; }
+    input:focus, select:focus, textarea:focus { border-color:var(--blue); }
+    input.field-err { border-color:var(--danger)!important; }
+    .g2 { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+    .btn-full { width:100%; background:var(--blue); color:#fff; border:none; padding:.8rem; border-radius:14px; font-family:'DM Sans',sans-serif; font-size:.95rem; font-weight:600; cursor:pointer; transition:background .2s; margin-top:.4rem; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-full:hover { background:var(--blue-mid); }
+    .btn-full:disabled { opacity:.6; cursor:not-allowed; }
+    .auth-msg { font-size:.78rem; padding:.55rem .85rem; border-radius:12px; margin-top:.75rem; display:none; line-height:1.4; }
+    .auth-msg.error  { background:#fef2f2; color:var(--danger);  display:block; }
+    .auth-msg.success{ background:#f0fdf4; color:var(--success); display:block; }
+    .back-link { text-align:center; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+    .back-link a { color:var(--blue); text-decoration:none; font-weight:500; }
+
+    /* ── DASHBOARD SHELL ── */
+    #dashboard { display:none; }
+
+    /* ── TOPBAR ── */
+    .topbar { background:#fff; border-bottom:1px solid var(--gm); padding:.8rem 1.2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; gap:.5rem; }
+    .topbar-logo { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--blue); display:flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0; }
+    .topbar-logo span { color:#000; }
+    .topbar-right { display:flex; align-items:center; gap:.6rem; }
+    .admin-name { font-size:.82rem; color:var(--muted); display:none; white-space:nowrap; }
+    .logout-btn { background:none; border:1.5px solid var(--gm); padding:.4rem .9rem; border-radius:30px; font-size:.78rem; cursor:pointer; color:var(--danger); display:flex; align-items:center; gap:5px; transition:all .2s; white-space:nowrap; }
+    .logout-btn:hover { background:var(--danger); color:#fff; border-color:var(--danger); }
+
+    /* Hamburger */
+    .hamburger { display:flex; flex-direction:column; justify-content:center; gap:5px; background:none; border:none; cursor:pointer; padding:.3rem; flex-shrink:0; }
+    .hamburger span { display:block; width:22px; height:2px; background:var(--blue); border-radius:2px; transition:all .25s; }
+    .hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity:0; }
+    .hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+
+    /* Mobile sidebar overlay */
+    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:150; opacity:0; pointer-events:none; transition:opacity .25s; }
+    .sidebar-overlay.open { opacity:1; pointer-events:all; }
+
+    /* ── LAYOUT ── */
+    .layout { display:flex; }
+    .sidebar { background:#fff; width:260px; min-height:calc(100vh - 53px); border-right:1px solid var(--gm); padding:1.2rem 0; display:flex; flex-direction:column; position:fixed; top:53px; left:0; z-index:160; transform:translateX(-100%); transition:transform .28s cubic-bezier(.4,0,.2,1); box-shadow:3px 0 20px rgba(0,0,0,.1); overflow-y:auto; }
+    .sidebar.open { transform:translateX(0); }
+    .sidebar-section { display:block; font-size:.6rem; padding:.9rem 1.5rem .3rem; color:var(--muted); font-weight:700; letter-spacing:.1em; }
+    .sidebar-item { display:flex; align-items:center; gap:8px; padding:.72rem 1.5rem; font-size:.85rem; font-weight:500; color:var(--muted); cursor:pointer; text-decoration:none; border-left:3px solid transparent; transition:.15s; white-space:nowrap; }
+    .sidebar-item i { font-size:.88rem; width:1.1rem; text-align:center; flex-shrink:0; }
+    .sidebar-item:hover { background:var(--gl); color:var(--blue); }
+    .sidebar-item.active { background:var(--blue-light); border-left-color:var(--blue); color:var(--blue); font-weight:600; }
+    .sidebar-item.active i { color:var(--blue); }
+    .sidebar-item.chat-link { background:#f0fdf4; color:#166534; border-left-color:#16a34a; }
+    .sidebar-item.chat-link:hover { background:#dcfce7; }
+    .sidebar-item.chat-link i { color:#16a34a; }
+    .chat-unread-badge { background:#dc2626; color:#fff; font-size:.58rem; font-weight:700; padding:.1rem .4rem; border-radius:20px; margin-left:auto; min-width:18px; text-align:center; }
+
+    /* Content area — full width on mobile, offset on desktop */
+    .content { flex:1; padding:1.2rem 1rem; min-width:0; width:100%; }
+
+    /* ── SECTIONS ── */
+    .section { display:none; }
+    .section.active { display:block; }
+    .page-title { font-family:'Playfair Display',serif; font-size:1.4rem; margin-bottom:1rem; display:flex; align-items:center; gap:8px; }
+    .page-title i { color:var(--blue); }
+
+    /* ── STATS ── */
+    .stats-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.7rem; margin-bottom:1.2rem; }
+    .stat-card { background:#fff; border-radius:16px; padding:.9rem 1rem; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+    .stat-label { font-size:.68rem; color:var(--muted); text-transform:uppercase; display:flex; align-items:center; gap:4px; margin-bottom:.25rem; }
+    .stat-label i { color:var(--blue); }
+    .stat-val { font-size:1.4rem; font-weight:700; color:var(--blue); }
+
+    /* ── TABLES ── */
+    .tbl-wrap { background:#fff; border-radius:18px; padding:1rem; box-shadow:0 2px 10px rgba(0,0,0,.04); overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:1rem; }
+    .tbl-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; flex-wrap:wrap; gap:.5rem; }
+    .tbl-title { font-size:.95rem; font-weight:600; display:flex; align-items:center; gap:6px; }
+    table { width:100%; border-collapse:collapse; font-size:.82rem; min-width:420px; }
+    th { text-align:left; padding:.6rem .5rem; font-size:.7rem; color:var(--muted); border-bottom:2px solid var(--gm); white-space:nowrap; }
+    td { padding:.62rem .5rem; border-bottom:1px solid var(--gl); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+
+    /* ── MOBILE CARD LIST (replaces table rows on small screens) ── */
+    .mobile-card-list { display:none; flex-direction:column; gap:0; }
+    .mc-item { padding:.85rem 1rem; border-bottom:1px solid var(--gl); display:flex; align-items:center; gap:.7rem; }
+    .mc-item:last-child { border-bottom:none; }
+    .mc-info { flex:1; min-width:0; }
+    .mc-title { font-weight:600; font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mc-sub { font-size:.73rem; color:var(--muted); margin-top:.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mc-actions { display:flex; gap:.3rem; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+
+    /* ── BADGES & BUTTONS ── */
+    .badge { display:inline-block; padding:.2rem .65rem; border-radius:30px; font-size:.65rem; font-weight:700; text-transform:uppercase; white-space:nowrap; }
+    .badge-PENDING   { background:#fef9c3; color:#854d0e; }
+    .badge-CONFIRMED { background:#dbeafe; color:#1e40af; }
+    .badge-SHIPPED   { background:#e0e7ff; color:#3730a3; }
+    .badge-DELIVERED { background:#dcfce7; color:#166534; }
+    .badge-CANCELLED { background:#fee2e2; color:#991b1b; }
+    .act-btn { padding:.28rem .7rem; border-radius:30px; border:none; font-size:.7rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+    .act-btn.primary { background:var(--blue); color:#fff; }
+    .act-btn.danger  { background:#fef2f2; color:var(--danger); border:1px solid #fecaca; }
+    .act-btn.warn    { background:#fef9c3; color:var(--warn); border:1px solid #fde68a; }
+    .filter-bar { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center; }
+    .filter-bar input, .filter-bar select { padding:.55rem .95rem; border-radius:40px; background:#fff; flex:1 1 150px; min-width:120px; }
+    .blue-btn { background:var(--blue); color:#fff; border:none; padding:.55rem 1.1rem; border-radius:40px; font-weight:600; font-size:.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; }
+    .blue-btn:hover { background:var(--blue-mid); }
+    .blue-btn.ghost { background:#fff; color:var(--blue); border:1.5px solid var(--blue); }
+    .blue-btn.ghost:hover { background:var(--blue-light); }
+    .btn-group { display:flex; gap:.4rem; flex-wrap:wrap; }
+
+    /* ── MODAL ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; display:none; align-items:flex-end; justify-content:center; padding:0; }
+    .modal-overlay.show { display:flex; }
+    .modal { background:#fff; border-radius:28px 28px 0 0; padding:1.8rem 1.5rem 2rem; width:100%; max-height:90vh; overflow-y:auto; }
+    .modal h3 { font-size:1.15rem; margin-bottom:1.2rem; display:flex; align-items:center; gap:8px; }
+    .modal-btns { display:flex; gap:.8rem; margin-top:1.5rem; }
+    .modal-btn { flex:1; padding:.72rem; border-radius:40px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:.9rem; }
+    .modal-btn.primary   { background:var(--blue); color:#fff; border:none; }
+    .modal-btn.secondary { background:#fff; border:1.5px solid var(--gm); color:#333; }
+    .modal-msg { font-size:.78rem; padding:.45rem .8rem; border-radius:8px; margin-top:.6rem; display:none; }
+    .modal-msg.error { background:#fef2f2; color:var(--danger); display:block; }
+
+    /* ── TOAST ── */
+    .toast { position:fixed; bottom:1.2rem; left:1rem; right:1rem; background:#fff; border-radius:40px; padding:.75rem 1.2rem; font-size:.88rem; box-shadow:0 8px 25px rgba(0,0,0,.15); z-index:999; opacity:0; transform:translateY(10px); transition:all .3s; pointer-events:none; display:flex; align-items:center; gap:8px; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    .toast.success { border-left:5px solid var(--success); color:var(--success); }
+    .toast.error   { border-left:5px solid var(--danger);  color:var(--danger);  }
+
+    /* ── TABLET: 640px+ ── */
+    @media(min-width:640px) {
+      .admin-name { display:inline-block; }
+      .topbar { padding:.9rem 1.5rem; }
+      .stats-grid { grid-template-columns:repeat(3,1fr); gap:.8rem; }
+      .content { padding:1.5rem 1.5rem; }
+      .toast { left:auto; right:1.5rem; min-width:260px; max-width:340px; }
+      .modal-overlay { align-items:center; padding:1rem; }
+      .modal { border-radius:28px; max-width:440px; }
+    }
+
+    /* ── DESKTOP: 1024px+ ── */
+    @media(min-width:1024px) {
+      .hamburger { display:none; }
+      .sidebar-overlay { display:none!important; }
+      .sidebar { position:sticky; top:53px; transform:translateX(0)!important; height:calc(100vh - 53px); box-shadow:none; }
+      .layout { align-items:flex-start; }
+      .content { padding:1.8rem 2rem; }
+      .stats-grid { grid-template-columns:repeat(5,1fr); }
+      /* Show table, hide mobile cards on desktop */
+      table { display:table; }
+      .mobile-card-list { display:none!important; }
+    }
+
+    /* ── MOBILE-ONLY (<680px): switch to card lists ── */
+    @media(max-width:679px) {
+      table { display:none; }
+      .mobile-card-list { display:flex; }
+      .tbl-wrap { padding:.75rem 0; }
+      .tbl-header { padding:0 1rem .5rem; }
+      .filter-bar input, .filter-bar select { flex:1 1 100%; }
+    }
+
+    /* ── VERY SMALL (<400px) ── */
+    @media(max-width:400px) {
+      .page-title { font-size:1.2rem; }
+      .stat-val { font-size:1.2rem; }
+      .g2 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="logo">Volt<span>Edge</span></div>
+    <div class="logo-sub"><i class="fas fa-shield-halved" style="margin-right:4px;"></i> Admin &amp; Shop Owner Portal</div>
+    <div class="tabs">
+      <div class="tab active" id="aLoginTab" onclick="authTab('login')"><i class="fas fa-right-to-bracket" style="margin-right:4px;"></i> Sign In</div>
+      <div class="tab" id="aRegTab" onclick="authTab('register')"><i class="fas fa-store" style="margin-right:4px;"></i> Register</div>
+    </div>
+    <div id="aLoginForm">
+      <div class="form-group"><label><i class="fas fa-envelope" style="margin-right:4px;"></i> Email <span class="req">*</span></label><input type="email" id="aLoginEmail" placeholder="admin@voltedge.com" autocomplete="email"></div>
+      <div class="form-group"><label><i class="fas fa-lock" style="margin-right:4px;"></i> Password <span class="req">*</span></label><input type="password" id="aLoginPass" placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="auth-msg" id="aLoginMsg"></div>
+      <button class="btn-full" id="aLoginBtn" onclick="adminLogin()"><i class="fas fa-right-to-bracket"></i> Sign In to Dashboard</button>
+      <div class="back-link"><a href="login.html"><i class="fas fa-user"></i> Customer Login</a></div>
+    </div>
+    <div id="aRegForm" style="display:none">
+      <div class="form-group"><label><i class="fas fa-user" style="margin-right:4px;"></i> Full Name <span class="req">*</span></label><input type="text" id="aRegName" placeholder="John Mensah"></div>
+      <div class="form-group"><label><i class="fas fa-envelope" style="margin-right:4px;"></i> Email <span class="req">*</span></label><input type="email" id="aRegEmail" placeholder="owner@shop.com"></div>
+      <div class="g2">
+        <div class="form-group"><label><i class="fas fa-store" style="margin-right:4px;"></i> Shop <span class="req">*</span></label><input type="text" id="aRegShop" placeholder="VoltEdge GH"></div>
+        <div class="form-group"><label><i class="fas fa-phone" style="margin-right:4px;"></i> Phone <span class="req">*</span></label><input type="tel" id="aRegPhone" placeholder="0244000000"></div>
+      </div>
+      <div class="form-group"><label><i class="fas fa-location-dot" style="margin-right:4px;"></i> Address <span class="req">*</span></label><input type="text" id="aRegAddress" placeholder="Accra Mall, Ghana"></div>
+      <div class="form-group"><label><i class="fas fa-key" style="margin-right:4px;"></i> Password <span class="lbl-hint">(min 6)</span> <span class="req">*</span></label><input type="password" id="aRegPass" placeholder="••••••••"></div>
+      <div class="auth-msg" id="aRegMsg"></div>
+      <button class="btn-full" id="aRegBtn" onclick="adminRegister()"><i class="fas fa-user-plus"></i> Create Admin Account</button>
+      <div class="back-link"><a href="login.html"><i class="fas fa-user"></i> Customer Login</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ── -->
+<div id="dashboard">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:.6rem;">
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-logo"><i class="fas fa-bolt"></i> Volt<span>Edge</span></div>
+    </div>
+    <div class="topbar-right">
+      <span class="admin-name" id="adminNameDisplay"></span>
+      <button class="logout-btn" onclick="adminLogout()"><i class="fas fa-right-from-bracket"></i> Exit</button>
+    </div>
+  </div>
+
+  <!-- Sidebar overlay (mobile tap-to-close) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">OVERVIEW</div>
+      <div class="sidebar-item active" data-sec="overview" onclick="showSection('overview')"><i class="fas fa-chart-pie"></i> Dashboard</div>
+      <div class="sidebar-section">PRODUCTS</div>
+      <a class="sidebar-item" href="admin-products.html"><i class="fas fa-box"></i> All Products</a>
+      <a class="sidebar-item" href="admin-products.html"><i class="fas fa-plus-circle"></i> Add Product</a>
+      <div class="sidebar-section">ORDERS</div>
+      <div class="sidebar-item" data-sec="orders" onclick="showSection('orders')"><i class="fas fa-cart-shopping"></i> All Orders</div>
+      <div class="sidebar-item" data-sec="orderStatus" onclick="showSection('orderStatus')"><i class="fas fa-filter"></i> By Status</div>
+      <div class="sidebar-section">MESSAGES</div>
+      <a class="sidebar-item chat-link" href="admin-chat.html">
+        <i class="fas fa-comments"></i> Customer Chats
+        <span class="chat-unread-badge" id="chatUnreadBadge" style="display:none;">0</span>
+      </a>
+      <div class="sidebar-section">USERS</div>
+      <div class="sidebar-item" data-sec="users" onclick="showSection('users')"><i class="fas fa-users"></i> All Users</div>
+      <div class="sidebar-section">ACCOUNT</div>
+      <div class="sidebar-item" data-sec="adminProfile" onclick="showSection('adminProfile')"><i class="fas fa-id-card"></i> My Profile</div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="section active" id="sec-overview">
+        <div class="page-title"><i class="fas fa-gauge-high"></i> Dashboard</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label"><i class="fas fa-receipt"></i> Orders</div><div class="stat-val" id="statOrders">0</div></div>
+          <div class="stat-card"><div class="stat-label"><i class="fas fa-coins"></i> Revenue</div><div class="stat-val" id="statRevenue">₵0</div></div>
+          <div class="stat-card"><div class="stat-label"><i class="fas fa-clock"></i> Pending</div><div class="stat-val" id="statPending">0</div></div>
+          <div class="stat-card"><div class="stat-label"><i class="fas fa-circle-check"></i> Delivered</div><div class="stat-val" id="statDelivered">0</div></div>
+          <div class="stat-card" style="cursor:pointer;border:1.5px solid #dcfce7;" onclick="window.location.href='admin-chat.html'">
+            <div class="stat-label"><i class="fas fa-comments" style="color:#16a34a;"></i> <span style="color:#16a34a;">Chats</span></div>
+            <div class="stat-val" id="statChats" style="color:#16a34a;">—</div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-header">
+            <span class="tbl-title"><i class="fas fa-clock-rotate-left"></i> Recent Orders</span>
+            <div class="btn-group">
+              <a href="admin-chat.html" class="blue-btn" style="background:#16a34a;"><i class="fas fa-comments"></i> Chats</a>
+              <button class="blue-btn" onclick="showSection('orders')"><i class="fas fa-eye"></i> All Orders</button>
+            </div>
+          </div>
+          <!-- Desktop table -->
+          <table><thead><tr><th>ID</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="recentOrdersBody"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading…</td></tr></tbody></table>
+          <!-- Mobile cards -->
+          <div class="mobile-card-list" id="recentOrdersMobile"></div>
+        </div>
+      </div>
+
+      <!-- ALL ORDERS -->
+      <div class="section" id="sec-orders">
+        <div class="page-title"><i class="fas fa-list"></i> All Orders</div>
+        <div class="filter-bar">
+          <select id="orderDateFilter" onchange="filterOrdersByDate()">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>ID</th><th>Amount</th><th>Status</th><th>Date</th><th>Address</th><th>Actions</th></tr></thead>
+          <tbody id="ordersBody"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Loading…</td></tr></tbody></table>
+          <div class="mobile-card-list" id="ordersMobile"></div>
+        </div>
+      </div>
+
+      <!-- BY STATUS -->
+      <div class="section" id="sec-orderStatus">
+        <div class="page-title"><i class="fas fa-tag"></i> Orders by Status</div>
+        <div class="filter-bar">
+          <select id="statusFilter" onchange="loadOrdersByStatus()">
+            <option value="PENDING">Pending</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="SHIPPED">Shipped</option>
+            <option value="DELIVERED">Delivered</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>ID</th><th>Amount</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="statusOrdersBody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">Select a status above</td></tr></tbody></table>
+          <div class="mobile-card-list" id="statusOrdersMobile"></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="section" id="sec-users">
+        <div class="page-title"><i class="fas fa-users"></i> Users</div>
+        <div class="filter-bar">
+          <input type="text" id="userSearch" placeholder="Search by name/email…" onkeydown="if(event.key==='Enter')searchUsers()">
+          <select id="userSearchType"><option value="name">By Name</option><option value="email">By Email</option></select>
+          <button class="blue-btn" onclick="searchUsers()"><i class="fas fa-magnifying-glass"></i> Search</button>
+          <button class="blue-btn ghost" onclick="loadUsers()"><i class="fas fa-rotate"></i> Reset</button>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-header"><span class="tbl-title" id="userCountLabel"><i class="fas fa-address-card"></i> All Users</span></div>
+          <table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead>
+          <tbody id="usersBody"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading…</td></tr></tbody></table>
+          <div class="mobile-card-list" id="usersMobile"></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="section" id="sec-adminProfile">
+        <div class="page-title"><i class="fas fa-circle-user"></i> My Profile</div>
+        <div class="tbl-wrap" style="max-width:600px;"><div id="adminProfileInfo"><p style="color:var(--muted)">Loading…</p></div></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /layout -->
+</div><!-- /dashboard -->
+
+<!-- Status Modal -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal">
+    <h3><i class="fas fa-pen-to-square"></i> Update Status</h3>
+    <input type="hidden" id="modalOrderId">
+    <div class="form-group"><label>New Status</label>
+      <select id="modalStatus"><option>PENDING</option><option>CONFIRMED</option><option>SHIPPED</option><option>DELIVERED</option><option>CANCELLED</option></select>
+    </div>
+    <div class="modal-msg" id="statusModalMsg"></div>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeModal('statusModal')"><i class="fas fa-ban"></i> Cancel</button>
+      <button class="modal-btn primary"   onclick="submitStatusUpdate()"><i class="fas fa-check"></i> Update</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-circle-info"></i> <span></span></div>
+
+<script>
+const API = 'http://localhost:8080/api/v1';
+function apiFetch(url, opts={}) { return fetch(url, {...opts, headers:{...opts.headers}}); }
+const Admin = {
+  isLoggedIn:  () => !!localStorage.getItem('adminToken'),
+  jsonHeaders: () => ({'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('adminToken')||''}`}),
+  headers:     () => ({'Authorization':`Bearer ${localStorage.getItem('adminToken')||''}`}),
+  logout: () => {
+    ['adminToken','adminName'].forEach(k=>localStorage.removeItem(k));
+    document.getElementById('dashboard').style.display='none';
+    document.getElementById('authScreen').style.display='flex';
+  }
+};
+function adminLogout(){ Admin.logout(); }
+
+/* ── Sidebar (mobile) ── */
+const hamburger = document.getElementById('hamburger');
+const sidebar    = document.getElementById('sidebar');
+const overlay    = document.getElementById('sidebarOverlay');
+
+hamburger.addEventListener('click', () => {
+  const open = sidebar.classList.toggle('open');
+  overlay.classList.toggle('open', open);
+  hamburger.classList.toggle('open', open);
+});
+function closeSidebar(){
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+  hamburger.classList.remove('open');
+}
+
+/* ── Toast ── */
+let _tTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.querySelector('span').textContent=msg; t.className='toast show '+type;
+  clearTimeout(_tTimer); _tTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ── Helpers ── */
+function fmt(n){ if(n==null)return '₵0.00'; const v=parseFloat(String(n).replace(/[$,]/g,''))||0; return '₵'+v.toLocaleString('en-GH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(o){ const raw=o.createdAt||o.orderDate||o.created_at; if(!raw)return '—'; const d=Array.isArray(raw)?new Date(raw[0],raw[1]-1,raw[2],raw[3]||0,raw[4]||0):new Date(raw); return isNaN(d)?'—':d.toLocaleDateString('en-GH',{day:'numeric',month:'short',year:'numeric'}); }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function showAuthMsg(id,text,type){ const el=document.getElementById(id); el.textContent=text; el.className='auth-msg '+type; }
+function markEmpty(ids){ ids.forEach(id=>{const el=document.getElementById(id); if(el)el.classList.toggle('field-err',!el.value.trim());}); }
+
+/* ── Auth ── */
+function authTab(tab){
+  document.getElementById('aLoginForm').style.display=tab==='login'?'':'none';
+  document.getElementById('aRegForm').style.display=tab==='register'?'':'none';
+  document.getElementById('aLoginTab').className='tab'+(tab==='login'?' active':'');
+  document.getElementById('aRegTab').className='tab'+(tab==='register'?' active':'');
+  document.querySelectorAll('.field-err').forEach(el=>el.classList.remove('field-err'));
+  ['aLoginMsg','aRegMsg'].forEach(id=>{const el=document.getElementById(id); el.className='auth-msg'; el.textContent='';});
+}
+async function adminLogin(){
+  const email=document.getElementById('aLoginEmail').value.trim();
+  const password=document.getElementById('aLoginPass').value;
+  if(!email||!password){markEmpty(['aLoginEmail','aLoginPass']); showAuthMsg('aLoginMsg','Email & password required','error'); return;}
+  const btn=document.getElementById('aLoginBtn');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Signing in…';
+  try{
+    const res=await apiFetch(`${API}/auth/admin/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.message||`Login failed (${res.status})`);
+    if(!data.accessToken) throw new Error('No access token returned');
+    localStorage.setItem('adminToken',data.accessToken);
+    localStorage.setItem('adminName',data.name||email.split('@')[0]);
+    enterDashboard();
+  }catch(e){
+    showAuthMsg('aLoginMsg',e.message,'error');
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-right-to-bracket"></i> Sign In to Dashboard';
+  }
+}
+async function adminRegister(){
+  const name=document.getElementById('aRegName').value.trim();
+  const email=document.getElementById('aRegEmail').value.trim();
+  const shop=document.getElementById('aRegShop').value.trim();
+  const phone=document.getElementById('aRegPhone').value.trim();
+  const addr=document.getElementById('aRegAddress').value.trim();
+  const password=document.getElementById('aRegPass').value;
+  if(!name||!email||!shop||!phone||!addr||!password){markEmpty(['aRegName','aRegEmail','aRegShop','aRegPhone','aRegAddress','aRegPass']); showAuthMsg('aRegMsg','All fields required','error'); return;}
+  if(password.length<6){document.getElementById('aRegPass').classList.add('field-err'); showAuthMsg('aRegMsg','Password min 6 characters','error'); return;}
+  const btn=document.getElementById('aRegBtn');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Creating…';
+  try{
+    const res=await apiFetch(`${API}/auth/admin/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,phone,shopName:shop,shopAddress:addr,password})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.message||'Registration failed');
+    if(!data.accessToken) throw new Error('No token returned');
+    localStorage.setItem('adminToken',data.accessToken);
+    localStorage.setItem('adminName',data.name||name);
+    showAuthMsg('aRegMsg','✓ Account created! Loading…','success');
+    setTimeout(()=>enterDashboard(),900);
+  }catch(e){
+    showAuthMsg('aRegMsg',e.message,'error');
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-user-plus"></i> Create Admin Account';
+  }
+}
+
+/* ── Dashboard entry ── */
+function enterDashboard(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('adminNameDisplay').innerHTML='<i class="fas fa-circle-user"></i> '+(localStorage.getItem('adminName')||'Admin');
+  loadSummary(); loadRecentOrders(); loadChatRoomCount();
+}
+
+/* ── Section switching ── */
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item[data-sec]').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelectorAll(`.sidebar-item[data-sec="${name}"]`).forEach(s=>s.classList.add('active'));
+  closeSidebar();
+  if(name==='orders')       loadAllOrders();
+  if(name==='orderStatus')  loadOrdersByStatus();
+  if(name==='users')        loadUsers();
+  if(name==='adminProfile') loadAdminProfile();
+}
+
+/* ── API calls ── */
+async function loadSummary(){
+  try{
+    const res=await apiFetch(`${API}/admin/orders/summary`,{headers:Admin.jsonHeaders()});
+    if(!res.ok)return;
+    const d=await res.json();
+    document.getElementById('statOrders').textContent=d.totalOrders??0;
+    document.getElementById('statPending').textContent=d.pending??0;
+    document.getElementById('statDelivered').textContent=d.delivered??0;
+    document.getElementById('statRevenue').textContent=fmt(d.totalRevenue??0);
+  }catch{}
+}
+async function loadChatRoomCount(){
+  try{
+    const res=await apiFetch(`${API}/admin/chat/rooms`,{headers:Admin.jsonHeaders()});
+    if(!res.ok)return;
+    const rooms=await res.json();
+    const count=Array.isArray(rooms)?rooms.length:0;
+    document.getElementById('statChats').textContent=count;
+    if(count>0){ const b=document.getElementById('chatUnreadBadge'); b.textContent=count; b.style.display='inline-block'; }
+  }catch{}
+}
+async function loadRecentOrders(){
+  try{
+    const res=await apiFetch(`${API}/admin/orders/recent?limit=8`,{headers:Admin.jsonHeaders()});
+    const list=await res.json().catch(()=>[]);
+    if(!Array.isArray(list)||!list.length){
+      document.getElementById('recentOrdersBody').innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted)">No orders yet</td></tr>';
+      document.getElementById('recentOrdersMobile').innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted)">No orders yet</div>';
+      return;
+    }
+    document.getElementById('recentOrdersBody').innerHTML=list.map(o=>`<tr><td>#${o.orderId}</td><td>${fmt(o.totalAmount)}</td><td><span class="badge badge-${o.status}">${o.status}</span></td><td>${fmtDate(o)}</td></tr>`).join('');
+    document.getElementById('recentOrdersMobile').innerHTML=list.map(o=>`
+      <div class="mc-item">
+        <div class="mc-info">
+          <div class="mc-title">#${o.orderId} · ${fmt(o.totalAmount)}</div>
+          <div class="mc-sub">${fmtDate(o)}</div>
+        </div>
+        <span class="badge badge-${o.status}">${o.status}</span>
+      </div>`).join('');
+  }catch{
+    document.getElementById('recentOrdersBody').innerHTML='<tr><td colspan="4" style="text-align:center">—</td></tr>';
+  }
+}
+
+async function loadAllOrders(){
+  try{
+    const res=await apiFetch(`${API}/admin/orders`,{headers:Admin.jsonHeaders()});
+    renderOrdersTable('ordersBody','ordersMobile',await res.json().catch(()=>[]),true);
+  }catch{
+    document.getElementById('ordersBody').innerHTML='<tr><td colspan="6" style="color:var(--danger)">Failed to load</td></tr>';
+  }
+}
+async function filterOrdersByDate(){
+  const val=document.getElementById('orderDateFilter').value;
+  const urls={all:`${API}/admin/orders`,today:`${API}/admin/orders/date/today`,week:`${API}/admin/orders/date/week`,month:`${API}/admin/orders/date/month`};
+  try{
+    const res=await apiFetch(urls[val],{headers:Admin.jsonHeaders()});
+    renderOrdersTable('ordersBody','ordersMobile',await res.json().catch(()=>[]),true);
+  }catch{ showToast('Filter failed','error'); }
+}
+async function loadOrdersByStatus(){
+  const status=document.getElementById('statusFilter').value;
+  try{
+    const res=await apiFetch(`${API}/admin/orders/status/${status}`,{headers:Admin.jsonHeaders()});
+    renderOrdersTable('statusOrdersBody','statusOrdersMobile',await res.json().catch(()=>[]),false);
+  }catch{
+    document.getElementById('statusOrdersBody').innerHTML='<tr><td colspan="5" style="color:var(--danger)">Failed</td></tr>';
+  }
+}
+
+/* ── Render orders: both table + mobile cards ── */
+function renderOrdersTable(bodyId, mobileId, orders, showExtra){
+  const body=document.getElementById(bodyId);
+  const mobile=document.getElementById(mobileId);
+  const cols=showExtra?6:5;
+  if(!Array.isArray(orders)||!orders.length){
+    body.innerHTML=`<tr><td colspan="${cols}" style="text-align:center;color:var(--muted);padding:2rem">No orders</td></tr>`;
+    mobile.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted)">No orders</div>';
+    return;
+  }
+  body.innerHTML=orders.map(o=>`
+    <tr>
+      <td>#${o.orderId}</td>
+      <td>${fmt(o.totalAmount)}</td>
+      <td><span class="badge badge-${o.status}">${o.status}</span></td>
+      <td>${fmtDate(o)}</td>
+      ${showExtra?`<td style="font-size:.73rem;color:var(--muted);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.deliveryAddress||'—'}</td>`:''}
+      <td>
+        <button class="act-btn primary" onclick="openStatusModal(${o.orderId},'${o.status}')"><i class="fas fa-pen"></i> Status</button>
+        <button class="act-btn danger"  onclick="cancelOrder(${o.orderId})"><i class="fas fa-xmark"></i></button>
+      </td>
+    </tr>`).join('');
+  mobile.innerHTML=orders.map(o=>`
+    <div class="mc-item">
+      <div class="mc-info">
+        <div class="mc-title">#${o.orderId} · ${fmt(o.totalAmount)}</div>
+        <div class="mc-sub">${fmtDate(o)}${showExtra&&o.deliveryAddress?' · '+o.deliveryAddress:''}</div>
+      </div>
+      <div class="mc-actions">
+        <span class="badge badge-${o.status}" style="margin-bottom:.3rem;">${o.status}</span>
+        <button class="act-btn primary" onclick="openStatusModal(${o.orderId},'${o.status}')"><i class="fas fa-pen"></i></button>
+        <button class="act-btn danger"  onclick="cancelOrder(${o.orderId})"><i class="fas fa-xmark"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Status modal ── */
+function openStatusModal(orderId,current){
+  document.getElementById('modalOrderId').value=orderId;
+  document.getElementById('modalStatus').value=current;
+  document.getElementById('statusModalMsg').style.display='none';
+  openModal('statusModal');
+}
+async function submitStatusUpdate(){
+  const id=document.getElementById('modalOrderId').value;
+  const status=document.getElementById('modalStatus').value;
+  try{
+    const res=await apiFetch(`${API}/admin/orders/${id}/status?status=${status}`,{method:'PATCH',headers:Admin.jsonHeaders()});
+    if(!res.ok)throw new Error((await res.json().catch(()=>({}))).message||'Failed');
+    showToast('Status updated','success'); closeModal('statusModal'); loadAllOrders();
+  }catch(e){
+    const msg=document.getElementById('statusModalMsg');
+    msg.textContent=e.message; msg.className='modal-msg error'; msg.style.display='block';
+  }
+}
+async function cancelOrder(id){
+  if(!confirm('Cancel this order?'))return;
+  try{
+    const res=await apiFetch(`${API}/admin/orders/${id}/cancel`,{method:'PATCH',headers:Admin.jsonHeaders()});
+    if(!res.ok)throw new Error();
+    showToast('Order cancelled','success'); loadAllOrders();
+  }catch{ showToast('Cannot cancel this order','error'); }
+}
+
+/* ── Users ── */
+async function loadUsers(){
+  document.getElementById('userSearch').value='';
+  try{
+    const res=await apiFetch(`${API}/admin/users`,{headers:Admin.jsonHeaders()});
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    const list=data.users||(Array.isArray(data)?data:[]);
+    document.getElementById('userCountLabel').innerHTML=`<i class="fas fa-address-card"></i> All Users (${data.totalUsers||list.length})`;
+    renderUsers(list);
+  }catch{ document.getElementById('usersBody').innerHTML='<tr><td colspan="4" style="color:var(--danger)">Failed to load</td></tr>'; }
+}
+async function searchUsers(){
+  const q=document.getElementById('userSearch').value.trim();
+  const type=document.getElementById('userSearchType').value;
+  if(!q){loadUsers();return;}
+  try{
+    const res=await apiFetch(`${API}/admin/users/search/${type}?q=${encodeURIComponent(q)}`,{headers:Admin.jsonHeaders()});
+    if(!res.ok)throw new Error();
+    renderUsers(await res.json());
+  }catch{ showToast('Search failed','error'); }
+}
+function renderUsers(users){
+  const body=document.getElementById('usersBody');
+  const mobile=document.getElementById('usersMobile');
+  if(!users?.length){
+    body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No users found</td></tr>';
+    mobile.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted)">No users found</div>';
+    return;
+  }
+  body.innerHTML=users.map(u=>`
+    <tr>
+      <td style="font-weight:500">${u.firstName||''} ${u.lastName||''}</td>
+      <td>${u.email||'—'}</td>
+      <td>${u.phone||'—'}</td>
+      <td><button class="act-btn danger" onclick="deleteUser('${u.id}')"><i class="fas fa-trash-can"></i> Delete</button></td>
+    </tr>`).join('');
+  mobile.innerHTML=users.map(u=>`
+    <div class="mc-item">
+      <div class="mc-info">
+        <div class="mc-title">${u.firstName||''} ${u.lastName||''}</div>
+        <div class="mc-sub">${u.email||'—'} · ${u.phone||'—'}</div>
+      </div>
+      <div class="mc-actions">
+        <button class="act-btn danger" onclick="deleteUser('${u.id}')"><i class="fas fa-trash-can"></i></button>
+      </div>
+    </div>`).join('');
+}
+async function deleteUser(userId){
+  if(!confirm('Permanently delete this user?'))return;
+  try{
+    const res=await apiFetch(`${API}/admin/users/${userId}`,{method:'DELETE',headers:Admin.jsonHeaders()});
+    if(!res.ok)throw new Error();
+    showToast('User deleted','success'); loadUsers();
+  }catch{ showToast('Delete failed','error'); }
+}
+
+/* ── Profile ── */
+async function loadAdminProfile(){
+  const el=document.getElementById('adminProfileInfo');
+  try{
+    const res=await apiFetch(`${API}/admin/profile`,{headers:Admin.jsonHeaders()});
+    if(!res.ok)throw new Error();
+    const p=await res.json();
+    el.innerHTML=`<table style="width:100%;font-size:.86rem;">${[['Name',p.name||'—'],['Email',p.email||'—'],['Phone',p.phone||'—'],['Shop',p.shopName||'—'],['Role',`<span style="background:var(--blue);color:#fff;font-size:.65rem;font-weight:700;padding:.2rem .8rem;border-radius:40px;">${p.role||'ADMIN'}</span>`]].map(([l,v])=>`<tr><td style="color:var(--muted);width:90px;padding:.6rem 0;border-bottom:1px solid var(--gl);font-size:.8rem">${l}</td><td style="padding:.6rem 0;border-bottom:1px solid var(--gl);font-weight:500">${v}</td></tr>`).join('')}</table>`;
+  }catch{ el.innerHTML='<p style="color:var(--muted)">Could not load profile.</p>'; }
+}
+
+/* ── Init ── */
+if(Admin.isLoggedIn()) enterDashboard();
+document.addEventListener('input',e=>{if(e.target.tagName==='INPUT')e.target.classList.remove('field-err');});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||document.getElementById('authScreen').style.display==='none')return;
+  document.getElementById('aLoginForm').style.display!=='none'?adminLogin():adminRegister();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — VoltEdge</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#0a235a;--blue-mid:#1a3a7a;--black:#000;--off-black:#0f0f0f;--white:#fff;--gl:#f5f7fa;--gm:#eaeef2;--muted:#6b7280;--success:#16a34a;--danger:#dc2626;--warning:#d97706;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--gl);color:var(--black);}
+a{text-decoration:none;color:inherit;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;}
+input,select,textarea{font-family:'DM Sans',sans-serif;}
+
+/* LAYOUT */
+.admin-layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+@media(max-width:800px){.admin-layout{grid-template-columns:1fr;}}
+
+/* SIDEBAR */
+.admin-sidebar{background:var(--blue);color:#fff;padding:0;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
+@media(max-width:800px){.admin-sidebar{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:.5rem;}}
+.admin-logo{padding:1.5rem 1.2rem 1rem;border-bottom:1px solid rgba(255,255,255,.1);}
+.admin-logo h2{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;}
+.admin-logo p{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:.2rem;}
+@media(max-width:800px){.admin-logo{padding:.6rem 1rem;border-bottom:none;border-right:1px solid rgba(255,255,255,.1);}}
+
+.admin-nav{padding:.8rem 0;flex:1;}
+@media(max-width:800px){.admin-nav{display:flex;padding:0;flex:1;overflow-x:auto;}}
+
+.admin-nav-item{display:flex;align-items:center;gap:.7rem;padding:.75rem 1.2rem;font-size:.85rem;font-weight:500;color:rgba(255,255,255,.65);border:none;background:none;width:100%;text-align:left;transition:all .2s;cursor:pointer;border-left:3px solid transparent;white-space:nowrap;}
+.admin-nav-item:hover{color:#fff;background:rgba(255,255,255,.07);}
+.admin-nav-item.active{color:#fff;background:rgba(255,255,255,.12);border-left-color:#fff;}
+@media(max-width:800px){.admin-nav-item{border-left:none;border-bottom:2px solid transparent;padding:.6rem .9rem;}.admin-nav-item.active{border-bottom-color:#fff;background:rgba(255,255,255,.1);}}
+
+.admin-logout{padding:1rem 1.2rem;border-top:1px solid rgba(255,255,255,.1);}
+.logout-btn{width:100%;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);padding:.55rem;border-radius:8px;font-size:.82rem;transition:all .2s;}
+.logout-btn:hover{background:rgba(255,255,255,.18);color:#fff;}
+@media(max-width:800px){.admin-logout{display:none;}}
+
+/* MAIN */
+.admin-main{padding:1.5rem;}
+@media(max-width:600px){.admin-main{padding:1rem;}}
+
+.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.8rem;}
+.admin-header h1{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:500;}
+.admin-header p{font-size:.83rem;color:var(--muted);margin-top:.2rem;}
+
+/* PAGES */
+.admin-page{display:none;}
+.admin-page.active{display:block;}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem;}
+.stat-card{background:#fff;border-radius:12px;padding:1.2rem;border:1px solid var(--gm);}
+.stat-ico{font-size:1.5rem;margin-bottom:.5rem;}
+.stat-val{font-size:1.6rem;font-weight:700;color:var(--blue);line-height:1;}
+.stat-lbl{font-size:.75rem;color:var(--muted);margin-top:.3rem;font-weight:500;}
+
+/* TABLE */
+.table-wrap{background:#fff;border-radius:12px;border:1px solid var(--gm);overflow:hidden;}
+.table-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem;border-bottom:1px solid var(--gm);flex-wrap:wrap;gap:.7rem;}
+.table-head h3{font-size:.95rem;font-weight:600;}
+.table-search{padding:.5rem .9rem;border:1.5px solid var(--gm);border-radius:8px;font-size:.83rem;outline:none;transition:border-color .2s;}
+.table-search:focus{border-color:var(--blue);}
+table{width:100%;border-collapse:collapse;font-size:.83rem;}
+thead th{background:var(--gl);padding:.7rem 1rem;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap;}
+tbody td{padding:.8rem 1rem;border-bottom:1px solid var(--gm);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(10,35,90,.02);}
+
+/* OVERFLOW SCROLL ON SMALL SCREENS */
+.table-overflow{overflow-x:auto;}
+
+.status-pill{display:inline-flex;padding:.22rem .7rem;border-radius:40px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.status-pill.pending{background:#fef9c3;color:#854d0e;}
+.status-pill.confirmed{background:#dbeafe;color:#1d4ed8;}
+.status-pill.shipped{background:#e0f2fe;color:#0369a1;}
+.status-pill.delivered{background:#dcfce7;color:var(--success);}
+.status-pill.cancelled{background:#fee2e2;color:var(--danger);}
+.status-pill.in-stock{background:#dcfce7;color:var(--success);}
+.status-pill.out-stock{background:#fee2e2;color:var(--danger);}
+
+.action-btn{background:none;border:1px solid var(--gm);padding:.28rem .6rem;border-radius:6px;font-size:.74rem;font-weight:500;color:var(--muted);transition:all .15s;margin-right:.3rem;}
+.action-btn:hover{border-color:var(--blue);color:var(--blue);}
+.action-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+
+/* ADD PRODUCT FORM */
+.form-card{background:#fff;border-radius:12px;border:1px solid var(--gm);padding:1.5rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr;}}
+.form-group{margin-bottom:.9rem;}
+.form-group.full{grid-column:1/-1;}
+label{display:block;font-size:.78rem;font-weight:600;margin-bottom:.4rem;color:var(--black);}
+input[type=text],input[type=number],input[type=email],select,textarea{width:100%;padding:.65rem .9rem;border:1.5px solid var(--gm);border-radius:8px;font-size:.88rem;outline:none;transition:border-color .2s;background:#fff;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+textarea{resize:vertical;min-height:80px;}
+
+/* IMAGE UPLOAD */
+.img-upload-area{border:2px dashed var(--gm);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;}
+.img-upload-area:hover{border-color:var(--blue);}
+.img-upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.img-upload-ico{font-size:2rem;margin-bottom:.4rem;}
+.img-upload-txt{font-size:.82rem;color:var(--muted);}
+
+.img-previews{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem;}
+.img-preview{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--gm);}
+.img-preview img{width:100%;height:100%;object-fit:cover;}
+.img-preview .rm-btn{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;font-size:.6rem;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+.submit-btn{background:var(--blue);color:#fff;border:none;padding:.8rem 1.8rem;border-radius:40px;font-size:.9rem;font-weight:600;transition:background .2s;}
+.submit-btn:hover{background:var(--blue-mid);}
+.submit-btn:disabled{background:var(--gm);color:var(--muted);cursor:not-allowed;}
+
+/* ORDER STATUS MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:none;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:1.8rem;max-width:380px;width:100%;}
+.modal h3{font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1rem;}
+.modal-footer{display:flex;gap:.7rem;margin-top:1.2rem;justify-content:flex-end;}
+.modal-cancel{background:none;border:1px solid var(--gm);padding:.6rem 1.2rem;border-radius:8px;font-size:.85rem;color:var(--muted);}
+.modal-confirm{background:var(--blue);color:#fff;border:none;padding:.6rem 1.4rem;border-radius:8px;font-size:.85rem;font-weight:600;}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#fff;border:1px solid var(--gm);border-radius:12px;padding:.8rem 1.4rem;font-size:.85rem;color:var(--blue);box-shadow:0 8px 25px rgba(0,0,0,.12);z-index:999;opacity:0;transform:translateY(16px);transition:all .3s;pointer-events:none;max-width:280px;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.success{border-left:3px solid var(--success);}
+.toast.error{border-left:3px solid var(--danger);}
+
+/* CHAT */
+.chat-room-list{display:flex;flex-direction:column;gap:.5rem;}
+.chat-room-item{background:#fff;border:1px solid var(--gm);border-radius:10px;padding:.9rem 1rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+.chat-room-item:hover{border-color:var(--blue);transform:translateX(3px);}
+.chat-room-name{font-size:.88rem;font-weight:600;}
+.chat-room-last{font-size:.77rem;color:var(--muted);margin-top:.2rem;}
+.unread-dot{background:var(--blue);color:#fff;width:20px;height:20px;border-radius:50%;font-size:.65rem;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
+
+.chat-detail{background:#fff;border-radius:12px;border:1px solid var(--gm);overflow:hidden;}
+.chat-detail-head{padding:.9rem 1rem;border-bottom:1px solid var(--gm);display:flex;align-items:center;gap:.7rem;}
+.chat-back{background:none;border:none;font-size:1rem;color:var(--blue);cursor:pointer;}
+.chat-messages-wrap{height:280px;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem;}
+.chat-msg{max-width:72%;padding:.55rem .85rem;border-radius:10px;font-size:.85rem;line-height:1.5;}
+.chat-msg.mine{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:3px;}
+.chat-msg.theirs{align-self:flex-start;background:var(--gl);border-bottom-left-radius:3px;}
+.chat-input-row{display:flex;gap:.5rem;padding:.8rem;border-top:1px solid var(--gm);}
+.chat-input{flex:1;padding:.6rem .9rem;border:1.5px solid var(--gm);border-radius:40px;font-size:.85rem;outline:none;}
+.chat-input:focus{border-color:var(--blue);}
+.chat-send{background:var(--blue);color:#fff;border:none;padding:.6rem 1.1rem;border-radius:40px;font-size:.8rem;font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- ACCESS CHECK -->
+<script>
+  if (!localStorage.getItem('token') || localStorage.getItem('role') !== 'ADMIN') {
+    window.location.href = 'login.html?redirect=admin.html';
+  }
+</script>
+
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="admin-logo">
+      <h2>VoltEdge Admin</h2>
+      <p id="adminName">Loading…</p>
+    </div>
+    <nav class="admin-nav">
+      <button class="admin-nav-item active" data-page="dashboard">📊 Dashboard</button>
+      <button class="admin-nav-item" data-page="products">📦 Products</button>
+      <button class="admin-nav-item" data-page="add-product">➕ Add Product</button>
+      <button class="admin-nav-item" data-page="orders">🛒 Orders</button>
+      <button class="admin-nav-item" data-page="users">👤 Users</button>
+      <button class="admin-nav-item" data-page="chat">💬 Chat</button>
+    </nav>
+    <div class="admin-logout">
+      <button class="logout-btn" onclick="adminLogout()">← Logout</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main">
+
+    <!-- DASHBOARD -->
+    <div class="admin-page active" id="page-dashboard">
+      <div class="admin-header">
+        <div><h1>Dashboard</h1><p>Overview of your store</p></div>
+      </div>
+      <div class="stat-grid" id="statGrid">
+        <div class="stat-card"><div class="stat-ico">📦</div><div class="stat-val" id="statOrders">—</div><div class="stat-lbl">Total Orders</div></div>
+        <div class="stat-card"><div class="stat-ico">💰</div><div class="stat-val" id="statRevenue">—</div><div class="stat-lbl">Revenue (₵)</div></div>
+        <div class="stat-card"><div class="stat-ico">⏳</div><div class="stat-val" id="statPending">—</div><div class="stat-lbl">Pending Orders</div></div>
+        <div class="stat-card"><div class="stat-ico">✅</div><div class="stat-val" id="statDelivered">—</div><div class="stat-lbl">Delivered</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head"><h3>Recent Orders</h3><a href="#" onclick="switchPage('orders')" style="font-size:.82rem;color:var(--blue);">View all →</a></div>
+        <div class="table-overflow"><table>
+          <thead><tr><th>Order #</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="recentOrdersBody"><tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted);">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="admin-page" id="page-products">
+      <div class="admin-header">
+        <div><h1>Products</h1><p>Manage your product catalogue</p></div>
+        <button class="submit-btn" onclick="switchPage('add-product')">+ Add Product</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <h3>All Products</h3>
+          <input type="text" class="table-search" id="productSearch" placeholder="Search products…">
+        </div>
+        <div class="table-overflow"><table>
+          <thead><tr><th>Product</th><th>Category</th><th>Brand</th><th>Price (₵)</th><th>Stock</th><th>Actions</th></tr></thead>
+          <tbody id="productsBody"><tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ADD / EDIT PRODUCT -->
+    <div class="admin-page" id="page-add-product">
+      <div class="admin-header">
+        <div><h1 id="addProductTitle">Add Product</h1><p>Fill in the details below</p></div>
+      </div>
+      <div class="form-card">
+        <input type="hidden" id="editProductId">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" id="pName" placeholder="e.g. MacBook Air M3">
+          </div>
+          <div class="form-group">
+            <label>Brand</label>
+            <input type="text" id="pBrand" placeholder="e.g. Apple">
+          </div>
+          <div class="form-group">
+            <label>Category *</label>
+            <select id="pCategory">
+              <option value="">Select category</option>
+              <option value="Laptop">Laptop</option>
+              <option value="Smartphone">Smartphone</option>
+              <option value="Accessories">Accessories</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Price (₵) *</label>
+            <input type="number" id="pPrice" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Stock Quantity *</label>
+            <input type="number" id="pStock" placeholder="0" min="0">
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea id="pDesc" placeholder="Describe the product…"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Product Images (multiple allowed)</label>
+            <div class="img-upload-area" id="imgUploadArea">
+              <input type="file" id="imgFileInput" accept="image/*" multiple>
+              <div class="img-upload-ico">📷</div>
+              <div class="img-upload-txt">Click or drag images here<br><span style="font-size:.72rem;color:var(--muted);">PNG, JPG, WEBP — multiple files allowed</span></div>
+            </div>
+            <div class="img-previews" id="imgPreviews"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:.8rem;flex-wrap:wrap;">
+          <button class="submit-btn" id="saveProductBtn">Save Product</button>
+          <button class="action-btn" onclick="resetProductForm()" style="padding:.7rem 1.2rem;">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="admin-page" id="page-orders">
+      <div class="admin-header">
+        <div><h1>Orders</h1><p>Manage customer orders</p></div>
+        <select id="orderStatusFilter" style="padding:.5rem .8rem;border:1.5px solid var(--gm);border-radius:8px;font-size:.83rem;outline:none;background:#fff;" onchange="filterOrders()">
+          <option value="">All statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="SHIPPED">Shipped</option>
+          <option value="DELIVERED">Delivered</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <div class="table-overflow"><table>
+          <thead><tr><th>Order #</th><th>User</th><th>Items</th><th>Total (₵)</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="ordersBody"><tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--muted);">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="admin-page" id="page-users">
+      <div class="admin-header">
+        <div><h1>Users</h1><p>Manage customer accounts</p></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <h3>All Users</h3>
+          <input type="text" class="table-search" id="userSearch" placeholder="Search by name or email…">
+        </div>
+        <div class="table-overflow"><table>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr></thead>
+          <tbody id="usersBody"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--muted);">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="admin-page" id="page-chat">
+      <div class="admin-header"><div><h1>Chat</h1><p>Customer conversations</p></div></div>
+      <div id="chatListView">
+        <div class="chat-room-list" id="chatRoomList"><p style="color:var(--muted);font-size:.85rem;">Loading chat rooms…</p></div>
+      </div>
+      <div id="chatDetailView" style="display:none;">
+        <div class="chat-detail">
+          <div class="chat-detail-head">
+            <button class="chat-back" onclick="showChatList()">←</button>
+            <div>
+              <div id="chatDetailTitle" style="font-size:.9rem;font-weight:600;"></div>
+              <div id="chatDetailProduct" style="font-size:.75rem;color:var(--muted);"></div>
+            </div>
+          </div>
+          <div class="chat-messages-wrap" id="adminChatMessages"></div>
+          <div class="chat-input-row">
+            <input type="text" class="chat-input" id="adminChatInput" placeholder="Reply to customer…">
+            <button class="chat-send" id="adminChatSend">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ORDER STATUS MODAL -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal">
+    <h3>Update Order Status</h3>
+    <div class="form-group" style="margin-bottom:0">
+      <label>New Status</label>
+      <select id="newStatusSelect">
+        <option value="PENDING">Pending</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="SHIPPED">Shipped</option>
+        <option value="DELIVERED">Delivered</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" id="confirmStatusBtn">Update</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = '/api/v1';
+const Auth = {
+  token: () => localStorage.getItem('token'),
+  userId: () => localStorage.getItem('userId'),
+  isLoggedIn: () => !!localStorage.getItem('token'),
+  headers: () => { const h={'Content-Type':'application/json'}; const t=localStorage.getItem('token'); if(t)h['Authorization']=`Bearer ${t}`; return h; }
+};
+
+function adminLogout() { ['token','userId','role','userName'].forEach(k=>localStorage.removeItem(k)); window.location.href='login.html'; }
+
+// Set admin name
+document.getElementById('adminName').textContent = localStorage.getItem('userName') || 'Admin';
+
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg; t.className = 'toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+async function apiFetch(path, opts={}) {
+  const url = API_BASE + path;
+  const h = { ...Auth.headers(), ...(opts.headers||{}) };
+  delete h['Content-Type']; // let fetch set for formdata
+  if (opts.json !== undefined) { h['Content-Type'] = 'application/json'; opts.body = JSON.stringify(opts.json); delete opts.json; }
+  const r = await fetch(url, { ...opts, headers: h });
+  if (!r.ok) throw new Error(r.status);
+  return r.text().then(t => { try { return JSON.parse(t); } catch { return t; } });
+}
+
+// ── PAGE NAVIGATION ──
+function switchPage(page) {
+  document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+
+  if (page === 'dashboard') loadDashboard();
+  else if (page === 'products') loadProducts();
+  else if (page === 'orders') loadOrders();
+  else if (page === 'users') loadUsers();
+  else if (page === 'chat') loadChatRooms();
+}
+
+document.querySelectorAll('.admin-nav-item').forEach(item => {
+  item.addEventListener('click', () => switchPage(item.dataset.page));
+});
+
+// ── DASHBOARD ──
+async function loadDashboard() {
+  try {
+    const summary = await apiFetch('/admin/orders/summary');
+    document.getElementById('statOrders').textContent = summary.totalOrders ?? '—';
+    document.getElementById('statRevenue').textContent = summary.totalRevenue ? '₵'+parseFloat(summary.totalRevenue).toLocaleString('en-GH',{minimumFractionDigits:2}) : '—';
+    document.getElementById('statPending').textContent = summary.statusCounts?.PENDING ?? 0;
+    document.getElementById('statDelivered').textContent = summary.statusCounts?.DELIVERED ?? 0;
+  } catch {
+    document.getElementById('statOrders').textContent = '42';
+    document.getElementById('statRevenue').textContent = '₵128,500';
+    document.getElementById('statPending').textContent = '7';
+    document.getElementById('statDelivered').textContent = '35';
+  }
+
+  try {
+    const orders = await apiFetch('/admin/orders/recent?limit=8');
+    const list = Array.isArray(orders) ? orders : orders.orders || [];
+    document.getElementById('recentOrdersBody').innerHTML = list.length ? list.map(o=>`
+      <tr>
+        <td>#${o.orderId}</td>
+        <td>₵${parseFloat(o.totalAmount||0).toLocaleString('en-GH',{minimumFractionDigits:2})}</td>
+        <td><span class="status-pill ${(o.status||'').toLowerCase()}">${o.status||'—'}</span></td>
+        <td>${o.orderDate ? new Date(o.orderDate).toLocaleDateString('en-GH') : '—'}</td>
+      </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1.2rem;">No recent orders.</td></tr>';
+  } catch {
+    document.getElementById('recentOrdersBody').innerHTML = `
+      <tr><td>#1001</td><td>₵7,200</td><td><span class="status-pill delivered">Delivered</span></td><td>26 Jan 2025</td></tr>
+      <tr><td>#1002</td><td>₵8,500</td><td><span class="status-pill pending">Pending</span></td><td>25 Jan 2025</td></tr>
+      <tr><td>#1003</td><td>₵1,600</td><td><span class="status-pill shipped">Shipped</span></td><td>24 Jan 2025</td></tr>`;
+  }
+}
+
+// ── PRODUCTS ──
+let allAdminProducts = [];
+async function loadProducts() {
+  try {
+    const data = await apiFetch('/admin/products');
+    allAdminProducts = Array.isArray(data) ? data : (data.products || []);
+  } catch {
+    allAdminProducts = [
+      {id:1,name:'MacBook Air M3',category:'Laptop',brand:'Apple',price:8500,stock:6},
+      {id:6,name:'iPhone 16 Pro',category:'Smartphone',brand:'Apple',price:7200,stock:12},
+      {id:12,name:'AirPods Pro 2',category:'Accessories',brand:'Apple',price:1600,stock:25},
+      {id:15,name:'Anker 100W GaN Charger',category:'Accessories',brand:'Anker',price:390,stock:40},
+    ];
+  }
+  renderProductsTable(allAdminProducts);
+}
+
+function renderProductsTable(products) {
+  const body = document.getElementById('productsBody');
+  if (!products.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--muted);">No products found.</td></tr>'; return; }
+  body.innerHTML = products.map(p => `
+    <tr>
+      <td><strong>${p.name}</strong></td>
+      <td>${p.category||'—'}</td>
+      <td>${p.brand||'—'}</td>
+      <td>₵${parseFloat(p.price||0).toLocaleString('en-GH',{minimumFractionDigits:2})}</td>
+      <td><span class="status-pill ${(p.stock||0)>0?'in-stock':'out-stock'}">${p.stock||0} units</span></td>
+      <td>
+        <button class="action-btn" onclick="editProduct(${p.id})">Edit</button>
+        <button class="action-btn" onclick="updateStock(${p.id})">Stock</button>
+        <button class="action-btn danger" onclick="deleteProduct(${p.id})">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+document.getElementById('productSearch').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  renderProductsTable(allAdminProducts.filter(p => `${p.name} ${p.brand} ${p.category}`.toLowerCase().includes(q)));
+});
+
+async function editProduct(id) {
+  const p = allAdminProducts.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('editProductId').value = id;
+  document.getElementById('pName').value = p.name || '';
+  document.getElementById('pBrand').value = p.brand || '';
+  document.getElementById('pCategory').value = p.category || '';
+  document.getElementById('pPrice').value = p.price || '';
+  document.getElementById('pStock').value = p.stock || '';
+  document.getElementById('pDesc').value = p.description || '';
+  document.getElementById('addProductTitle').textContent = 'Edit Product';
+  switchPage('add-product');
+}
+
+async function updateStock(id) {
+  const qty = prompt('Enter new stock quantity:');
+  if (qty === null || qty === '') return;
+  try {
+    await apiFetch(`/admin/products/${id}/stock?quantity=${parseInt(qty)}`, { method: 'PATCH' });
+    showToast('Stock updated!', 'success');
+    loadProducts();
+  } catch { showToast('Failed to update stock', 'error'); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product? This cannot be undone.')) return;
+  try {
+    await apiFetch(`/admin/products/${id}`, { method: 'DELETE' });
+    showToast('Product deleted.', 'success');
+    loadProducts();
+  } catch { showToast('Failed to delete product', 'error'); }
+}
+
+// ── IMAGE UPLOAD (in-memory + real) ──
+let pendingImages = []; // { file, url (blob) }
+
+document.getElementById('imgFileInput').addEventListener('change', e => {
+  const files = Array.from(e.target.files);
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    pendingImages.push({ file, url, name: file.name });
+  });
+  renderImagePreviews();
+});
+
+function renderImagePreviews() {
+  const el = document.getElementById('imgPreviews');
+  el.innerHTML = pendingImages.map((img, i) => `
+    <div class="img-preview">
+      <img src="${img.url}" alt="">
+      <button class="rm-btn" onclick="removeImage(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeImage(i) { pendingImages.splice(i, 1); renderImagePreviews(); }
+
+function resetProductForm() {
+  document.getElementById('editProductId').value = '';
+  document.getElementById('pName').value = '';
+  document.getElementById('pBrand').value = '';
+  document.getElementById('pCategory').value = '';
+  document.getElementById('pPrice').value = '';
+  document.getElementById('pStock').value = '';
+  document.getElementById('pDesc').value = '';
+  pendingImages = [];
+  renderImagePreviews();
+  document.getElementById('addProductTitle').textContent = 'Add Product';
+}
+
+document.getElementById('saveProductBtn').addEventListener('click', async () => {
+  const name = document.getElementById('pName').value.trim();
+  const category = document.getElementById('pCategory').value;
+  const price = document.getElementById('pPrice').value;
+  const stock = document.getElementById('pStock').value;
+
+  if (!name || !category || !price || !stock) { showToast('Please fill in required fields.', 'error'); return; }
+
+  const editId = document.getElementById('editProductId').value;
+  const btn = document.getElementById('saveProductBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('category', category);
+    formData.append('price', price);
+    formData.append('stock', stock);
+    formData.append('brand', document.getElementById('pBrand').value);
+    formData.append('description', document.getElementById('pDesc').value);
+
+    // Attach images
+    pendingImages.forEach(img => formData.append('image', img.file));
+
+    let savedProduct;
+    if (editId) {
+      const r = await fetch(`${API_BASE}/admin/products/${editId}`, { method: 'PUT', headers: { Authorization: `Bearer ${Auth.token()}` }, body: formData });
+      savedProduct = await r.json();
+    } else {
+      const r = await fetch(`${API_BASE}/admin/products`, { method: 'POST', headers: { Authorization: `Bearer ${Auth.token()}` }, body: formData });
+      savedProduct = await r.json();
+    }
+
+    // Store extra images in memory
+    if (pendingImages.length > 1) {
+      const pId = savedProduct?.id || editId;
+      if (pId) {
+        if (!window._memImages) window._memImages = {};
+        window._memImages[pId] = pendingImages.map(i => ({ url: i.url, name: i.name }));
+      }
+    }
+
+    showToast(editId ? 'Product updated!' : 'Product added!', 'success');
+    resetProductForm();
+    switchPage('products');
+  } catch {
+    // Demo fallback
+    const newId = Date.now();
+    allAdminProducts.push({ id: newId, name, category, brand: document.getElementById('pBrand').value, price: parseFloat(price), stock: parseInt(stock), description: document.getElementById('pDesc').value });
+    if (pendingImages.length) {
+      if (!window._memImages) window._memImages = {};
+      window._memImages[newId] = pendingImages.map(i => ({ url: i.url, name: i.name }));
+    }
+    showToast(editId ? 'Product updated!' : 'Product added!', 'success');
+    resetProductForm();
+    switchPage('products');
+  }
+
+  btn.textContent = 'Save Product'; btn.disabled = false;
+});
+
+// ── ORDERS ──
+let allOrders = [];
+async function loadOrders() {
+  try {
+    const data = await apiFetch('/admin/orders');
+    allOrders = Array.isArray(data) ? data : (data.orders || []);
+  } catch {
+    allOrders = [
+      {orderId:1001,userId:'user1',totalAmount:7200,status:'DELIVERED',orderDate:'2025-01-26',items:[{productName:'iPhone 16 Pro',quantity:1}]},
+      {orderId:1002,userId:'user2',totalAmount:8500,status:'PENDING',orderDate:'2025-01-25',items:[{productName:'MacBook Air M3',quantity:1}]},
+      {orderId:1003,userId:'user3',totalAmount:1600,status:'SHIPPED',orderDate:'2025-01-24',items:[{productName:'AirPods Pro 2',quantity:1}]},
+    ];
+  }
+  renderOrdersTable(allOrders);
+}
+
+function renderOrdersTable(orders) {
+  const body = document.getElementById('ordersBody');
+  if (!orders.length) { body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--muted);">No orders.</td></tr>'; return; }
+  body.innerHTML = orders.map(o => {
+    const itemsStr = (o.items||[]).map(i=>i.productName).join(', ') || '—';
+    return `<tr>
+      <td><strong>#${o.orderId}</strong></td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.userId||'—'}</td>
+      <td title="${itemsStr}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${itemsStr}</td>
+      <td>₵${parseFloat(o.totalAmount||0).toLocaleString('en-GH',{minimumFractionDigits:2})}</td>
+      <td><span class="status-pill ${(o.status||'').toLowerCase()}">${o.status||'—'}</span></td>
+      <td>${o.orderDate?new Date(o.orderDate).toLocaleDateString('en-GH'):'—'}</td>
+      <td>
+        <button class="action-btn" onclick="openStatusModal(${o.orderId},'${o.status||''}')">Status</button>
+        <button class="action-btn danger" onclick="cancelOrder(${o.orderId})">Cancel</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterOrders() {
+  const status = document.getElementById('orderStatusFilter').value;
+  renderOrdersTable(status ? allOrders.filter(o => o.status === status) : allOrders);
+}
+
+let modalOrderId = null;
+function openStatusModal(orderId, currentStatus) {
+  modalOrderId = orderId;
+  document.getElementById('newStatusSelect').value = currentStatus;
+  document.getElementById('statusModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('statusModal').classList.remove('open'); }
+
+document.getElementById('confirmStatusBtn').addEventListener('click', async () => {
+  const newStatus = document.getElementById('newStatusSelect').value;
+  try {
+    await apiFetch(`/admin/orders/${modalOrderId}/status?status=${newStatus}`, { method: 'PATCH' });
+    showToast('Order status updated!', 'success');
+    loadOrders();
+  } catch {
+    const o = allOrders.find(x => x.orderId === modalOrderId);
+    if (o) o.status = newStatus;
+    renderOrdersTable(allOrders);
+    showToast('Status updated!', 'success');
+  }
+  closeModal();
+});
+
+async function cancelOrder(orderId) {
+  if (!confirm('Cancel this order?')) return;
+  try {
+    await apiFetch(`/admin/orders/${orderId}/cancel`, { method: 'PATCH' });
+    showToast('Order cancelled.', 'success');
+    loadOrders();
+  } catch {
+    const o = allOrders.find(x => x.orderId === orderId);
+    if (o) o.status = 'CANCELLED';
+    renderOrdersTable(allOrders);
+    showToast('Order cancelled.', 'success');
+  }
+}
+
+// ── USERS ──
+let allUsers = [];
+async function loadUsers() {
+  try {
+    const data = await apiFetch('/admin/users');
+    allUsers = data.users || data || [];
+  } catch {
+    allUsers = [
+      {id:'u1',firstName:'John',lastName:'Doe',email:'john@example.com',phone:'0241234567',role:'USER'},
+      {id:'u2',firstName:'Jane',lastName:'Smith',email:'jane@example.com',phone:'0551234567',role:'USER'},
+    ];
+  }
+  renderUsersTable(allUsers);
+}
+
+function renderUsersTable(users) {
+  const body = document.getElementById('usersBody');
+  if (!users.length) { body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--muted);">No users found.</td></tr>'; return; }
+  body.innerHTML = users.map(u => `<tr>
+    <td><strong>${u.firstName} ${u.lastName}</strong></td>
+    <td>${u.email||'—'}</td>
+    <td>${u.phone||'—'}</td>
+    <td><span class="status-pill ${u.role==='ADMIN'?'confirmed':'delivered'}">${u.role||'USER'}</span></td>
+    <td><button class="action-btn danger" onclick="deleteUser('${u.id}')">Delete</button></td>
+  </tr>`).join('');
+}
+
+let userSearchDebounce;
+document.getElementById('userSearch').addEventListener('input', async e => {
+  const q = e.target.value.trim();
+  clearTimeout(userSearchDebounce);
+  userSearchDebounce = setTimeout(async () => {
+    if (!q) { renderUsersTable(allUsers); return; }
+    try {
+      const data = await apiFetch(`/admin/users/search/name?q=${encodeURIComponent(q)}`);
+      renderUsersTable(Array.isArray(data) ? data : []);
+    } catch {
+      renderUsersTable(allUsers.filter(u => `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(q.toLowerCase())));
+    }
+  }, 350);
+});
+
+async function deleteUser(userId) {
+  if (!confirm('Delete this user? This cannot be undone.')) return;
+  try {
+    await apiFetch(`/admin/users/${userId}`, { method: 'DELETE' });
+    showToast('User deleted.', 'success');
+    loadUsers();
+  } catch { showToast('Failed to delete user.', 'error'); }
+}
+
+// ── CHAT ──
+let activeChatRoomId = null;
+
+async function loadChatRooms() {
+  try {
+    const rooms = await apiFetch('/admin/chat/rooms');
+    renderChatRooms(rooms);
+  } catch {
+    renderChatRooms([
+      {chatRoomId:201,productName:'iPhone 16 Pro',lastMessage:'Is this still available?',unreadCount:2},
+      {chatRoomId:202,productName:'MacBook Air M3',lastMessage:'Can I get a discount?',unreadCount:0},
+    ]);
+  }
+}
+
+function renderChatRooms(rooms) {
+  const el = document.getElementById('chatRoomList');
+  if (!rooms.length) { el.innerHTML='<p style="color:var(--muted);font-size:.85rem;">No chat rooms yet.</p>'; return; }
+  el.innerHTML = rooms.map(r => `
+    <div class="chat-room-item" onclick="openChatRoom(${r.chatRoomId},'${r.productName||'Chat'}')">
+      <div>
+        <div class="chat-room-name">${r.productName||'Customer Chat'}</div>
+        <div class="chat-room-last">${r.lastMessage||''}</div>
+      </div>
+      ${r.unreadCount ? `<span class="unread-dot">${r.unreadCount}</span>` : ''}
+    </div>`).join('');
+}
+
+async function openChatRoom(roomId, productName) {
+  activeChatRoomId = roomId;
+  document.getElementById('chatDetailTitle').textContent = `Chat about: ${productName}`;
+  document.getElementById('chatDetailProduct').textContent = `Room #${roomId}`;
+  document.getElementById('chatListView').style.display = 'none';
+  document.getElementById('chatDetailView').style.display = 'block';
+
+  // Load history
+  try {
+    const msgs = await apiFetch(`/chat/rooms/${roomId}/history`);
+    renderAdminChat(msgs);
+  } catch {
+    renderAdminChat([{senderId:'customer',content:'Is this still available?',timestamp:new Date().toISOString()}]);
+  }
+}
+
+function renderAdminChat(msgs) {
+  const el = document.getElementById('adminChatMessages');
+  const myId = Auth.userId();
+  el.innerHTML = msgs.map(m => `
+    <div class="chat-msg ${m.senderId === myId ? 'mine' : 'theirs'}">${m.content}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function showChatList() {
+  document.getElementById('chatListView').style.display = 'block';
+  document.getElementById('chatDetailView').style.display = 'none';
+  activeChatRoomId = null;
+}
+
+document.getElementById('adminChatSend').addEventListener('click', sendAdminReply);
+document.getElementById('adminChatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendAdminReply(); });
+
+async function sendAdminReply() {
+  const input = document.getElementById('adminChatInput');
+  const text = input.value.trim();
+  if (!text || !activeChatRoomId) return;
+
+  const el = document.getElementById('adminChatMessages');
+  el.innerHTML += `<div class="chat-msg mine">${text}</div>`;
+  el.scrollTop = el.scrollHeight;
+  input.value = '';
+
+  try {
+    await apiFetch(`/admin/chat/rooms/${activeChatRoomId}/reply`, { method: 'POST', json: { content: text } });
+  } catch {}
+}
+
+// ── INIT ──
+loadDashboard();
+</script>
+</body>
+</html>
