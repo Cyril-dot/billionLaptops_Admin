@@ -378,7 +378,7 @@
 <div class="toast" id="toast"><i class="fas fa-circle-info"></i> <span></span></div>
 
 <script>
-const API = 'http://localhost:8080/api/v1';
+const API = 'https://billionbackend.onrender.com/api/v1';
 function apiFetch(url, opts={}) { return fetch(url, {...opts, headers:{...opts.headers}}); }
 const Admin = {
   isLoggedIn:  () => !!localStorage.getItem('adminToken'),
