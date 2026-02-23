@@ -150,7 +150,7 @@ tr:hover td{background:#fafbfc;}
 
   <!-- Desktop nav -->
   <div class="topbar-nav">
-    <a class="nav-link" href="admin.html">Dashboard</a>
+    <a class="nav-link" href="index.html">Dashboard</a>
     <a class="nav-link" href="admin-products.html">Products</a>
     <a class="nav-link" href="admin-orders.html">Orders</a>
     <a class="nav-link active" href="admin-users.html">Users</a>
@@ -166,7 +166,7 @@ tr:hover td{background:#fafbfc;}
 <!-- Mobile nav overlay -->
 <div class="mobile-nav" id="mobileNav" onclick="closeMobileNav(event)">
   <div class="mobile-nav-drawer">
-    <a class="nav-link" href="admin.html">Dashboard</a>
+    <a class="nav-link" href="index.html">Dashboard</a>
     <a class="nav-link" href="admin-products.html">Products</a>
     <a class="nav-link" href="admin-orders.html">Orders</a>
     <a class="nav-link active" href="admin-users.html">Users</a>
@@ -262,11 +262,11 @@ const Auth = {
   }),
   logout: () => {
     ['adminToken','adminName'].forEach(k => localStorage.removeItem(k));
-    window.location.href = 'admin.html';
+    window.location.href = 'index.html';
   }
 };
 
-if (!Auth.isAdmin()) window.location.href = 'admin.html';
+if (!Auth.isAdmin()) window.location.href = 'index.html';
 
 document.getElementById('logoutBtn').addEventListener('click', Auth.logout);
 document.getElementById('logoutBtnMobile').addEventListener('click', Auth.logout);

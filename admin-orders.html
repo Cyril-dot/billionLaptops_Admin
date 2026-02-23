@@ -164,7 +164,7 @@ tr:hover td{background:#fafbfc;}
   </div>
   <!-- Desktop nav -->
   <div class="topbar-nav">
-    <a class="nav-link" href="admin.html">Dashboard</a>
+    <a class="nav-link" href="index.html">Dashboard</a>
     <a class="nav-link" href="admin-products.html">Products</a>
     <a class="nav-link active" href="admin-orders.html">Orders</a>
     <a class="nav-link" href="admin-users.html">Users</a>
@@ -180,7 +180,7 @@ tr:hover td{background:#fafbfc;}
 <div class="mobile-nav-overlay" id="mobOverlay"></div>
 <div class="mobile-nav-menu" id="mobMenu">
   <button class="mobile-nav-close" id="mobClose">✕</button>
-  <a class="nav-link" href="admin.html">Dashboard</a>
+  <a class="nav-link" href="index.html">Dashboard</a>
   <a class="nav-link" href="admin-products.html">Products</a>
   <a class="nav-link active" href="admin-orders.html">Orders</a>
   <a class="nav-link" href="admin-users.html">Users</a>
@@ -299,9 +299,9 @@ const API_BASE = 'https://billionbackend.onrender.com/api/v1';
 const Auth = {
   isAdmin: () => !!localStorage.getItem('adminToken'),
   headers: () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }),
-  logout:  () => { ['adminToken','adminName'].forEach(k => localStorage.removeItem(k)); window.location.href = 'admin.html'; }
+  logout:  () => { ['adminToken','adminName'].forEach(k => localStorage.removeItem(k)); window.location.href = 'index.html'; }
 };
-if (!Auth.isAdmin()) window.location.href = 'admin.html';
+if (!Auth.isAdmin()) window.location.href = 'index.html';
 
 // Nav
 document.getElementById('logoutBtn').addEventListener('click', Auth.logout);
